@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tombola</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ VARIABILI ============ */
+  :root {
+    --tavolo: #17432c;
+    --tavolo-scuro: #0e2c1c;
+    --carta: #fbf5e6;
+    --carta-2: #f3e9d0;
+    --bordo-carta: #e0d2ae;
+    --rosso: #b3261e;
+    --rosso-scuro: #7f1a14;
+    --oro: #d4a82a;
+    --inchiostro: #2a1f16;
+    --tenue: #8a7a63;
+    --ombra: 0 10px 30px rgba(0, 0, 0, .35);
+    --raggio: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    font-family: Inter, system-ui, sans-serif;
+    color: var(--inchiostro);
+    background: radial-gradient(ellipse at 50% 0%, #22603f 0%, var(--tavolo) 45%, var(--tavolo-scuro) 100%) fixed;
+    padding: 24px 16px 48px;
+  }
+
+  .contenitore { max-width: 1200px; margin: 0 auto; }
+
+  /* ============ INTESTAZIONE ============ */
+  header { text-align: center; color: var(--carta); margin-bottom: 24px; }
+  header h1 {
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 900;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    letter-spacing: .02em;
+    line-height: 1;
+  }
+  header h1 span { color: var(--oro); }
+  header p { opacity: .75; margin-top: 8px; font-size: .95rem; }
+
+  /* ============ LAYOUT ============ */
+  .tavolo { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+
+  .pannello {
+    background: var(--carta);
+    border-radius: var(--raggio);
+    box-shadow: var(--ombra);
+    padding: 20px;
+  }
+  .pannello h2 {
+    font-family: Fraunces, Georgia, serif;
+    font-size: 1.15rem;
+    margin-bottom: 14px;
+    color: var(--rosso-scuro);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .pannello h2 small { font-family: Inter, sans-serif; font-weight: 500; font-size: .8rem; color: var(--tenue); }
+
+  /* ============ NUMERO ESTRATTO ============ */
+  .gettone-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0 16px; }
+  .gettone {
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    background: radial-gradient(circle at 35% 30%, #fffdf6 0%, #f1e2bd 55%, #d9c08a 100%);
+    box-shadow: inset 0 -6px 12px rgba(120, 80, 20, .35), inset 0 4px 8px rgba(255, 255, 255, .8), 0 8px 18px rgba(0, 0, 0, .25);
+    border: 4px solid var(--rosso);
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 900;
+    font-size: 4.2rem;
+    color: var(--rosso-scuro);
+    user-select: none;
+  }
+  .gettone.vuoto { color: var(--tenue); font-size: 3rem; }
+  .gettone.gira { animation: gira .12s linear infinite; }
+  .gettone.pop { animation: pop .45s cubic-bezier(.2, 1.6, .4, 1); }
+  @keyframes gira { 50% { transform: rotate(8deg) scale(.95); } }
+  @keyframes pop { from { transform: scale(.6); } to { transform: scale(1); } }
+
+  .smorfia {
+    font-family: Fraunces, Georgia, serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--tenue);
+    min-height: 1.4em;
+    text-align: center;
+  }
+
+  /* ============ COMANDI ============ */
+  .comandi { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn {
+    font: 600 .95rem Inter, sans-serif;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: transform .1s, background .2s, opacity .2s;
+  }
+  .btn:active:not(:disabled) { transform: translateY(2px); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primario {
+    grid-column: 1 / -1;
+    background: var(--rosso);
+    color: #fff;
+    font-size: 1.1rem;
+    padding: 14px;
+    box-shadow: 0 4px 0 var(--rosso-scuro);
+  }
+  .btn-primario:hover:not(:disabled) { background: #c62f26; }
+  .btn-secondario { background: var(--carta-2); color: var(--inchiostro); border: 1px solid var(--bordo-carta); }
+  .btn-secondario:hover:not(:disabled) { background: #ecdfbf; }
+  .btn-secondario.attivo { background: var(--tavolo); color: #fff; border-color: var(--tavolo); }
+
+  .opzioni { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; font-size: .88rem; }
+  .opzioni label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .opzioni output { min-width: 32px; text-align: right; font-weight: 600; }
+  input[type=range] { accent-color: var(--rosso); flex: 1; }
+  input[type=checkbox] { accent-color: var(--rosso); width: 18px; height: 18px; }
+
+  /* ============ CONTATORE E ULTIMI ============ */
+  .contatore { display: flex; justify-content: space-between; font-size: .88rem; color: var(--tenue); margin: 18px 0 8px; }
+  .barra { height: 6px; background: var(--carta-2); border-radius: 3px; overflow: hidden; }
+  .barra i { display: block; height: 100%; width: 0; background: var(--rosso); transition: width .3s; }
+
+  .ultimi { display: flex; gap: 6px; margin-top: 12px; min-height: 34px; flex-wrap: wrap; }
+  .ultimi span {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--carta-2);
+    border: 2px solid var(--bordo-carta);
+    font: 700 .9rem Fraunces, Georgia, serif;
+  }
+  .ultimi span:first-child { border-color: var(--rosso); color: var(--rosso); }
+
+  /* ============ PREMI ============ */
+  .premi {
+    list-style: none;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dashed #d9c9a3;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .premi li {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: .9rem;
+    transition: background .3s;
+  }
+  .premi li b { font-family: Fraunces, Georgia, serif; font-size: 1rem; }
+  .premi li .chi { color: var(--tenue); font-size: .8rem; text-align: right; }
+  .premi li.in-palio { background: #fff2c9; outline: 1px solid var(--oro); }
+  .premi li.vinto { background: var(--tavolo); color: #fff; }
+  .premi li.vinto .chi { color: #cfe6d6; }
+
+  /* ============ TABELLONE ============ */
+  .tabellone { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .blocco {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    padding: 6px;
+    border: 2px solid #e3d4ae;
+    border-radius: 8px;
+    background: #fffdf7;
+  }
+  .blocco div {
+    aspect-ratio: 1;
+    display: grid; place-items: center;
+    border-radius: 6px;
+    background: var(--carta);
+    color: #b9a882;
+    font: 700 clamp(.8rem, 1.6vw, 1.15rem) Fraunces, Georgia, serif;
+    transition: background .3s, color .3s, transform .3s, box-shadow .3s;
+  }
+  .blocco div.estratto { background: var(--rosso); color: #fff; }
+  .blocco div.ultimo {
+    background: var(--oro);
+    color: var(--inchiostro);
+    transform: scale(1.12);
+    box-shadow: 0 0 0 3px rgba(212, 168, 42, .35);
+    position: relative; z-index: 1;
+  }
+
+  /* ============ CARTELLE ============ */
+  .sezione-cartelle { margin-top: 28px; }
+  .barra-cartelle {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    align-items: center; justify-content: space-between;
+    color: var(--carta);
+    margin-bottom: 14px;
+  }
+  .barra-cartelle h2 { font-family: Fraunces, Georgia, serif; font-size: 1.5rem; }
+  .barra-cartelle .azioni { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .barra-cartelle label { font-size: .9rem; opacity: .85; }
+  select {
+    font: 500 .9rem Inter, sans-serif;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none;
+    background: var(--carta);
+    color: var(--inchiostro);
+    cursor: pointer;
+  }
+
+  .cartelle { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+
+  .cartella {
+    --h: 355;
+    background: var(--carta);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: var(--ombra);
+    border: 3px double hsl(var(--h) 60% 38%);
+    transition: box-shadow .4s;
+  }
+  .cartella.vinta { box-shadow: 0 0 0 5px var(--oro), var(--ombra); }
+  .cartella-testa { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: .85rem; }
+  .cartella-testa b { font-family: Fraunces, Georgia, serif; color: hsl(var(--h) 60% 30%); font-size: 1rem; }
+  .conta { color: var(--tenue); font-variant-numeric: tabular-nums; }
+
+  .griglia {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 2px;
+    background: var(--inchiostro);
+    border: 2px solid var(--inchiostro);
+  }
+  .casella {
+    position: relative;
+    aspect-ratio: 1 / 1.05;
+    display: grid; place-items: center;
+    background: #fffdf7;
+    font: 700 clamp(1rem, 2vw, 1.35rem) Fraunces, Georgia, serif;
+    transition: background .3s, color .3s;
+  }
+  .casella.vuota {
+    background: repeating-linear-gradient(45deg, hsl(var(--h) 55% 84%) 0 6px, hsl(var(--h) 55% 92%) 6px 12px);
+  }
+  .casella.segnata { background: #f4e8c8; color: #b4a37d; }
+  .casella.vincente { background: #ffe08a; }
+
+  /* Il fagiolo che segna il numero */
+  .fagiolo {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 68%; height: 46%;
+    transform: translate(-50%, -50%) rotate(var(--r, 0deg));
+    border-radius: 48% 52% 50% 50% / 60% 60% 40% 40%;
+    background: radial-gradient(ellipse at 35% 30%, #d79a63 0%, #9b5527 45%, #5e2c10 100%);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, .4), inset 0 -2px 3px rgba(0, 0, 0, .25);
+    animation: cade .35s cubic-bezier(.3, 1.5, .5, 1);
+    pointer-events: none;
+  }
+  .fagiolo::after {
+    content: '';
+    position: absolute;
+    left: 42%; top: 18%;
+    width: 16%; height: 24%;
+    border-radius: 50%;
+    background: rgba(255, 240, 220, .7);
+  }
+  @keyframes cade {
+    from { transform: translate(-50%, -150%) rotate(var(--r, 0deg)) scale(1.4); opacity: 0; }
+  }
+
+  /* ============ ANNUNCIO PREMI ============ */
+  .annuncio {
+    position: fixed;
+    left: 50%; top: 20px;
+    transform: translate(-50%, -160%);
+    background: var(--rosso);
+    color: #fff;
+    padding: 14px 30px;
+    border-radius: 999px;
+    font: 900 1.7rem Fraunces, Georgia, serif;
+    text-align: center;
+    box-shadow: var(--ombra);
+    transition: transform .45s cubic-bezier(.2, 1.4, .4, 1);
+    z-index: 20;
+    max-width: calc(100% - 32px);
+  }
+  .annuncio small { display: block; font: 500 .85rem Inter, sans-serif; opacity: .9; }
+  .annuncio.visibile { transform: translate(-50%, 0); }
+
+  /* ============ OVERLAY TOMBOLA ============ */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(10, 25, 16, .78);
+    display: none;
+    place-items: center;
+    z-index: 30;
+    overflow: hidden;
+    padding: 16px;
+  }
+  .overlay.aperto { display: grid; }
+  .overlay .box {
+    position: relative; z-index: 2;
+    background: var(--carta);
+    border-radius: 20px;
+    padding: 36px 40px;
+    max-width: 440px;
+    text-align: center;
+    box-shadow: var(--ombra);
+    animation: pop .5s cubic-bezier(.2, 1.6, .4, 1);
+  }
+  .overlay h3 { font: 900 3.4rem Fraunces, Georgia, serif; color: var(--rosso); line-height: 1; }
+  .overlay p { margin: 12px 0 24px; color: var(--tenue); }
+  .overlay .azioni { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .coriandolo { position: absolute; top: -20px; width: 10px; height: 14px; animation: coriandoli linear forwards; }
+  @keyframes coriandoli { to { transform: translateY(110vh) rotate(720deg); } }
+
+  footer { text-align: center; color: var(--carta); opacity: .6; font-size: .82rem; margin-top: 28px; }
+  kbd { background: rgba(255,255,255,.15); border-radius: 4px; padding: 1px 6px; font-family: inherit; }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 860px) {
+    .tavolo { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 420px) {
+    body { padding: 16px 12px 40px; }
+    .pannello { padding: 14px; }
+    .cartelle { grid-template-columns: 1fr; }
+    .gettone { width: 120px; height: 120px; font-size: 3.4rem; }
+    .tabellone { gap: 6px; }
+    .blocco { padding: 4px; gap: 3px; }
+  }
+</style>
+</head>
+<body>
+<div class="contenitore">
+
+  <header>
+    <h1>Tom<span>bola</span></h1>
+    <p>Estrai i numeri: le cartelle si segnano da sole</p>
+  </header>
+
+  <main class="tavolo">
+    <!-- Pannello estrazione -->
+    <section class="pannello">
+      <h2>Estrazione <small id="inPalio">In palio: Ambo</small></h2>
+
+      <div class="gettone-wrap">
+        <div class="gettone vuoto" id="gettone">?</div>
+        <div class="smorfia" id="smorfia">Pronti per la prima estrazione</div>
+      </div>
+
+      <div class="comandi">
+        <button class="btn btn-primario" id="btnEstrai">Estrai numero</button>
+        <button class="btn btn-secondario" id="btnAuto">▶ Automatico</button>
+        <button class="btn btn-secondario" id="btnNuova">↻ Nuova partita</button>
+      </div>
+
+      <div class="opzioni">
+        <label>Intervallo automatico
+          <input type="range" id="velocita" min="1" max="6" step="0.5" value="3">
+          <output id="velVal">3 s</output>
+        </label>
+        <label>Leggi i numeri ad alta voce
+          <input type="checkbox" id="voce">
+        </label>
+      </div>
+
+      <div class="contatore">
+        <span>Numeri estratti</span>
+        <span id="contatore">0 / 90</span>
+      </div>
+      <div class="barra"><i id="barra"></i></div>
+
+      <div class="ultimi" id="ultimi"></div>
+
+      <ol class="premi" id="premi"></ol>
+    </section>
+
+    <!-- Tabellone -->
+    <section class="pannello">
+      <h2>Tabellone <small id="ultimoTab"></small></h2>
+      <div class="tabellone" id="tabellone"></div>
+    </section>
+  </main>
+
+  <!-- Cartelle -->
+  <section class="sezione-cartelle">
+    <div class="barra-cartelle">
+      <h2>Le tue cartelle</h2>
+      <div class="azioni">
+        <label for="numCartelle">Quante cartelle</label>
+        <select id="numCartelle">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+      </div>
+    </div>
+    <div class="cartelle" id="cartelle"></div>
+  </section>
+
+  <footer>Premi <kbd>Spazio</kbd> per estrarre · Sotto ogni numero, il significato della smorfia napoletana</footer>
+</div>
+
+<div class="annuncio" id="annuncio"></div>
+
+<div class="overlay" id="overlay">
+  <div class="box">
+    <h3>TOMBOLA!</h3>
+    <p id="vincitoreTesto"></p>
+    <div class="azioni">
+      <button class="btn btn-secondario" id="btnChiudi">Guarda le cartelle</button>
+      <button class="btn btn-primario" id="btnOverlayNuova" style="grid-column:auto">Nuova partita</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ============ DATI ============ */
+  const SMORFIA = [null,
+    "L'Italia", "La bambina", "La gatta", "Il maiale", "La mano",
+    "Quella che guarda a terra", "Il vasetto", "La Madonna", "La figliolanza", "I fagioli",
+    "I topolini", "I soldati", "Sant'Antonio", "L'ubriaco", "Il ragazzo",
+    "Il sedere", "La disgrazia", "Il sangue", "La risata", "La festa",
+    "La donna nuda", "Il pazzo", "Lo scemo", "Le guardie", "Natale",
+    "Nannina", "Il vaso da notte", "Il seno", "Il padre dei bambini", "Le palle del tenente",
+    "Il padrone di casa", "Il capitone", "Gli anni di Cristo", "La testa", "L'uccellino",
+    "Le nacchere", "Il monaco", "Le botte", "La corda al collo", "La noia",
+    "Il coltello", "Il caffè", "La donna al balcone", "Il carcere", "Il vino buono",
+    "I soldi", "Il morto", "Il morto che parla", "Il pezzo di carne", "Il pane",
+    "Il giardino", "La mamma", "Il vecchio", "Il cappello", "La musica",
+    "La caduta", "Il gobbo", "Il pacco", "I peli", "Si lamenta",
+    "Il cacciatore", "Il morto ammazzato", "La sposa", "La marsina", "Il pianto",
+    "Le due zitelle", "Il polpo nella chitarra", "La zuppa cotta", "Sottosopra", "Il palazzo",
+    "L'uomo senza valore", "La meraviglia", "L'ospedale", "La grotta", "Pulcinella",
+    "La fontana", "I diavoli", "La bella ragazza", "Il ladro", "La bocca",
+    "I fiori", "La tavola imbandita", "Il maltempo", "La chiesa", "Le anime del purgatorio",
+    "La bottega", "I pidocchi", "I caciocavalli", "La vecchia", "La paura"
+  ];
+
+  const PREMI = [
+    { label: 'Ambo',     n: 2 },
+    { label: 'Terno',    n: 3 },
+    { label: 'Quaterna', n: 4 },
+    { label: 'Cinquina', n: 5 },
+    { label: 'Tombola',  n: 15, tombola: true }
+  ];
+
+  const TINTE = [355, 215, 140, 28, 280, 190]; // colore di ogni cartella
+
+  /* ============ RIFERIMENTI DOM ============ */
+  const $ = s => document.querySelector(s);
+  const el = {
+    gettone: $('#gettone'), smorfia: $('#smorfia'),
+    estrai: $('#btnEstrai'), auto: $('#btnAuto'), nuova: $('#btnNuova'),
+    velocita: $('#velocita'), velVal: $('#velVal'), voce: $('#voce'),
+    contatore: $('#contatore'), barra: $('#barra'), ultimi: $('#ultimi'),
+    premi: $('#premi'), inPalio: $('#inPalio'), ultimoTab: $('#ultimoTab'),
+    tabellone: $('#tabellone'), cartelle: $('#cartelle'), numCartelle: $('#numCartelle'),
+    annuncio: $('#annuncio'), overlay: $('#overlay'), vincitoreTesto: $('#vincitoreTesto')
+  };
+
+  let S = null;            // stato della partita
+  let celleTab = {};       // numero -> casella del tabellone
+  let celleCartelle = {};  // numero -> caselle nelle cartelle
+
+  /* ============ UTILITÀ ============ */
+  const mescola = a => {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const intervallo = (da, a) => Array.from({ length: a - da + 1 }, (_, i) => da + i);
+  const attesaMs = () => +el.velocita.value * 1000;
+
+  /* ============ GENERAZIONE CARTELLA ============
+     Regole classiche: 3 righe x 9 colonne, 5 numeri per riga (15 totali),
+     ogni colonna ha da 1 a 3 numeri della sua decina (1-9, 10-19, ..., 80-90),
+     ordinati dall'alto in basso. */
+  function creaCartella() {
+    let schema;
+    while (true) {
+      schema = [0, 1, 2].map(() => mescola(intervallo(0, 8)).slice(0, 5));
+      const perColonna = Array(9).fill(0);
+      schema.forEach(r => r.forEach(c => perColonna[c]++));
+      if (perColonna.every(x => x >= 1)) break;
+    }
+    const griglia = [0, 1, 2].map(() => Array(9).fill(null));
+    for (let col = 0; col < 9; col++) {
+      const righe = [0, 1, 2].filter(r => schema[r].includes(col));
+      const min = col === 0 ? 1 : col * 10;
+      const max = col === 8 ? 90 : col * 10 + 9;
+      const numeri = mescola(intervallo(min, max)).slice(0, righe.length).sort((a, b) => a - b);
+      righe.forEach((r, i) => griglia[r][col] = numeri[i]);
+    }
+    return griglia;
+  }
+
+  /* ============ DISEGNO ============ */
+  function disegnaTabellone() {
+    el.tabellone.innerHTML = '';
+    celleTab = {};
+    // 6 blocchi da 3 righe x 5 colonne, come il tabellone vero
+    for (let br = 0; br < 3; br++) {
+      for (let bc = 0; bc < 2; bc++) {
+        const blocco = document.createElement('div');
+        blocco.className = 'blocco';
+        for (let r = br * 3; r < br * 3 + 3; r++) {
+          for (let c = bc * 5; c < bc * 5 + 5; c++) {
+            const n = r * 10 + c + 1;
+            const d = document.createElement('div');
+            d.textContent = n;
+            celleTab[n] = d;
+            blocco.appendChild(d);
+          }
+        }
+        el.tabellone.appendChild(blocco);
+      }
+    }
+  }
+
+  function disegnaCartelle() {
+    el.cartelle.innerHTML = '';
+    celleCartelle = {};
+    S.dom = [];
+    S.cartelle.forEach((griglia, ci) => {
+      const art = document.createElement('article');
+      art.className = 'cartella';
+      art.style.setProperty('--h', TINTE[ci % TINTE.length]);
+      art.innerHTML = `<div class="cartella-testa"><b>Cartella ${ci + 1}</b><span class="conta">0 / 15</span></div>`;
+      const g = document.createElement('div');
+      g.className = 'griglia';
+      const righe = [[], [], []];
+      griglia.forEach((riga, ri) => riga.forEach(n => {
+        const k = document.createElement('div');
+        k.className = 'casella';
+        if (n === null) {
+          k.classList.add('vuota');
+        } else {
+          k.textContent = n;
+          (celleCartelle[n] ||= []).push(k);
+          righe[ri].push(k);
+        }
+        g.appendChild(k);
+      }));
+      art.appendChild(g);
+      el.cartelle.appendChild(art);
+      S.dom.push({ art, righe, conta: art.querySelector('.conta') });
+    });
+  }
+
+  function disegnaPremi() {
+    el.premi.innerHTML = PREMI.map(p => `<li><b>${p.label}</b><span class="chi">—</span></li>`).join('');
+    evidenziaPremio();
+  }
+
+  function evidenziaPremio() {
+    el.premi.querySelectorAll('li').forEach((li, i) => li.classList.toggle('in-palio', i === S.premio && !S.finita));
+    el.inPalio.textContent = S.finita ? 'Partita finita' : `In palio: ${PREMI[S.premio].label}`;
+  }
+
+  function aggiornaInfo() {
+    const tot = S.estratti.length;
+    el.contatore.textContent = `${tot} / 90`;
+    el.barra.style.width = (tot / 90 * 100) + '%';
+    el.ultimi.innerHTML = S.estratti.slice(-7).reverse().map(n => `<span>${n}</span>`).join('');
+    el.ultimoTab.textContent = tot ? `Ultimo: ${S.estratti[tot - 1]}` : '';
+    S.cartelle.forEach((griglia, ci) => {
+      const segnati = griglia.flat().filter(n => n && S.estrattiSet.has(n)).length;
+      S.dom[ci].conta.textContent = `${segnati} / 15`;
+    });
+  }
+
+  /* ============ PARTITA ============ */
+  function nuovaPartita() {
+    fermaAuto();
+    S = {
+      sacchetto: mescola(intervallo(1, 90)),
+      estratti: [],
+      estrattiSet: new Set(),
+      cartelle: [],
+      premio: 0,
+      occupato: false,
+      finita: false,
+      autoOn: false,
+      timer: null,
+      nCartelle: +el.numCartelle.value
+    };
+    for (let i = 0; i < S.nCartelle; i++) S.cartelle.push(creaCartella());
+    disegnaTabellone();
+    disegnaCartelle();
+    disegnaPremi();
+    aggiornaInfo();
+    el.gettone.textContent = '?';
+    el.gettone.className = 'gettone vuoto';
+    el.smorfia.textContent = 'Pronti per la prima estrazione';
+    el.estrai.disabled = false;
+    el.auto.disabled = false;
+    el.overlay.classList.remove('aperto');
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+  }
+
+  function rotola(n) {
+    return new Promise(fine => {
+      const durata = S.autoOn ? Math.min(700, attesaMs() * 0.35) : 700;
+      el.gettone.className = 'gettone gira';
+      const t = setInterval(() => { el.gettone.textContent = 1 + Math.floor(Math.random() * 90); }, 60);
+      setTimeout(() => {
+        clearInterval(t);
+        el.gettone.textContent = n;
+        el.gettone.className = 'gettone';
+        void el.gettone.offsetWidth; // riavvia l'animazione
+        el.gettone.classList.add('pop');
+        fine();
+      }, durata);
+    });
+  }
+
+  async function estrai() {
+    const s = S;
+    if (!s || s.occupato || s.finita || !s.sacchetto.length) return;
+    s.occupato = true;
+    el.estrai.disabled = true;
+
+    const n = s.sacchetto.pop();
+    await rotola(n);
+    if (s !== S) return; // partita ricominciata durante l'animazione
+
+    s.estratti.push(n);
+    s.estrattiSet.add(n);
+    el.smorfia.textContent = SMORFIA[n];
+
+    el.tabellone.querySelectorAll('.ultimo').forEach(x => x.classList.remove('ultimo'));
+    celleTab[n].classList.add('estratto', 'ultimo');
+
+    segna(n);
+    aggiornaInfo();
+    parla(String(n), true);
+    controllaPremi();
+
+    s.occupato = false;
+    if (!s.finita && s.sacchetto.length) el.estrai.disabled = false;
+  }
+
+  function segna(n) {
+    (celleCartelle[n] || []).forEach(k => {
+      k.classList.add('segnata');
+      const f = document.createElement('span');
+      f.className = 'fagiolo';
+      f.style.setProperty('--r', (Math.random() * 70 - 35).toFixed(0) + 'deg');
+      k.appendChild(f);
+    });
+  }
+
+  /* ============ PREMI ============ */
+  function controllaPremi() {
+    while (S.premio < PREMI.length && !S.finita) {
+      const p = PREMI[S.premio];
+      const vincitori = [];
+      S.cartelle.forEach((griglia, ci) => {
+        if (p.tombola) {
+          const tot = griglia.flat().filter(n => n && S.estrattiSet.has(n)).length;
+          if (tot === 15) vincitori.push({ c: ci });
+        } else {
+          griglia.forEach((riga, ri) => {
+            const segnati = riga.filter(n => n && S.estrattiSet.has(n)).length;
+            if (segnati >= p.n) vincitori.push({ c: ci, riga: ri });
+          });
+        }
+      });
+      if (!vincitori.length) break;
+      assegna(p, vincitori);
+      S.premio++;
+    }
+    evidenziaPremio();
+  }
+
+  function assegna(p, vincitori) {
+    const testo = vincitori
+      .map(v => v.riga != null ? `Cartella ${v.c + 1}, riga ${v.riga + 1}` : `Cartella ${v.c + 1}`)
+      .join(' · ');
+
+    const li = el.premi.children[S.premio];
+    li.classList.add('vinto');
+    li.querySelector('.chi').textContent = testo;
+
+    vincitori.forEach(v => {
+      const dom = S.dom[v.c];
+      if (v.riga != null) {
+        dom.righe[v.riga].forEach(k => k.classList.add('vincente'));
+      } else {
+        dom.art.classList.add('vinta');
+        dom.righe.flat().forEach(k => k.classList.add('vincente'));
+      }
+    });
+
+    annuncia(p.label.toUpperCase() + '!', testo);
+    parla(p.label + '!', false);
+
+    if (p.tombola) {
+      S.finita = true;
+      fermaAuto();
+      el.estrai.disabled = true;
+      el.auto.disabled = true;
+      setTimeout(() => apriOverlay(testo), 900);
+    }
+  }
+
+  let timerAnnuncio;
+  function annuncia(titolo, sotto) {
+    el.annuncio.innerHTML = `${titolo}<small>${sotto}</small>`;
+    el.annuncio.classList.add('visibile');
+    clearTimeout(timerAnnuncio);
+    timerAnnuncio = setTimeout(() => el.annuncio.classList.remove('visibile'), 2600);
+  }
+
+  function apriOverlay(testo) {
+    el.vincitoreTesto.textContent = `${testo} fa tombola dopo ${S.estratti.length} estrazioni.`;
+    el.overlay.querySelectorAll('.coriandolo').forEach(x => x.remove());
+    const colori = ['#b3261e', '#d4a82a', '#2f8a57', '#fbf5e6', '#2b6cb0'];
+    for (let i = 0; i < 90; i++) {
+      const c = document.createElement('i');
+      c.className = 'coriandolo';
+      c.style.left = Math.random() * 100 + '%';
+      c.style.background = colori[i % colori.length];
+      c.style.animationDuration = (2.5 + Math.random() * 2.5) + 's';
+      c.style.animationDelay = (Math.random() * 1.5) + 's';
+      el.overlay.appendChild(c);
+    }
+    el.overlay.classList.add('aperto');
+  }
+
+  /* ============ AUTOMATICO ============ */
+  function avviaAuto() {
+    if (!S || S.finita) return;
+    S.autoOn = true;
+    el.auto.classList.add('attivo');
+    el.auto.textContent = '⏸ Pausa';
+    ciclo(S);
+  }
+
+  async function ciclo(s) {
+    if (s !== S || !s.autoOn) return;
+    await estrai();
+    if (s !== S || !s.autoOn) return;
+    if (s.finita || !s.sacchetto.length) { fermaAuto(); return; }
+    s.timer = setTimeout(() => ciclo(s), attesaMs());
+  }
+
+  function fermaAuto() {
+    if (!S) return;
+    S.autoOn = false;
+    clearTimeout(S.timer);
+    el.auto.classList.remove('attivo');
+    el.auto.textContent = '▶ Automatico';
+  }
+
+  /* ============ VOCE ============ */
+  function parla(testo, interrompi) {
+    if (!el.voce.checked || !('speechSynthesis' in window)) return;
+    if (interrompi) speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(testo);
+    u.lang = 'it-IT';
+    const voceIt = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith('it'));
+    if (voceIt) u.voice = voceIt;
+    u.rate = 1.05;
+    speechSynthesis.speak(u);
+  }
+
+  /* ============ EVENTI ============ */
+  el.estrai.addEventListener('click', estrai);
+  el.auto.addEventListener('click', () => S.autoOn ? fermaAuto() : avviaAuto());
+
+  el.nuova.addEventListener('click', () => {
+    if (S.estratti.length && !S.finita && !confirm('Iniziare una nuova partita? Quella in corso andrà persa.')) return;
+    nuovaPartita();
+  });
+
+  el.numCartelle.addEventListener('change', () => {
+    if (S.estratti.length && !S.finita &&
+        !confirm('Cambiare il numero di cartelle fa ripartire la partita. Continuare?')) {
+      el.numCartelle.value = S.nCartelle;
+      return;
+    }
+    nuovaPartita();
+  });
+
+  el.velocita.addEventListener('input', () => { el.velVal.textContent = el.velocita.value + ' s'; });
+
+  $('#btnChiudi').addEventListener('click', () => el.overlay.classList.remove('aperto'));
+  $('#btnOverlayNuova').addEventListener('click', nuovaPartita);
+
+  document.addEventListener('keydown', e => {
+    const tag = e.target.tagName;
+    if (e.code === 'Space' && !['INPUT', 'SELECT', 'BUTTON', 'TEXTAREA'].includes(tag)) {
+      e.preventDefault();
+      estrai();
+    }
+  });
+
+  if ('speechSynthesis' in window) speechSynthesis.getVoices(); // precarica le voci
+
+  nuovaPartita();
+</script>
+</body>
+</html>
